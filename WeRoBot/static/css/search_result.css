@@ -1,0 +1,14 @@
+ul {
+    margin-top: 10px;
+    padding: 0;
+    height: 40px;
+    list-style: none;
+}
+
+ul li {
+    line-height: 40px;
+    font-size: 20px;
+    font-family: "Time New Roman";
+    color: #000000;
+}
+

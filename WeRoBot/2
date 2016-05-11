@@ -1,0 +1,213 @@
+# -*- coding: utf-8 -*-
+import json
+import re
+import urllib2
+
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+
+
+from wechat_sdk import WechatConf
+from wechat_sdk import WechatBasic
+from wechat_sdk.exceptions import *
+from wechat_sdk.messages import *
+from wechat_sdk.context.framework.django import DatabaseContextStore
+
+from models import FilmSearch, Films, Notes
+
+conf = WechatConf(
+    token='ggfilm',
+    appid='wxd215ea1905032a90',
+    appsecret='14a0dc6d2dc81db94f46f2755f0f4702',
+    encrypt_mode='normal',
+    encoding_aes_key='N0iYQ4h7yucFJdtQIxXdM4SjKG1VBErCuNSnY5DHebb',
+)
+
+menu = {
+    'button':[
+        {
+            'type': 'view',
+            'name': '搜索参数',
+            'url': 'http://www.summychou.me/search'
+        },
+        {
+            'name': 'F1冲洗机',
+            'sub_button': [
+                {
+                    'type': 'view',
+                    'name': '入门视频教程',
+                    'url': 'http://www.soso.com/'
+                },
+            ]
+        },
+        {
+            'name': '胶片教程',
+            'sub_button': [
+                {
+                    'type': 'view',
+                    'name': '胶片存放',
+                    'url': 'http://www.soso.com/'
+                },
+            ]
+        }
+    ]
+}
+
+wechat = WechatBasic(conf=conf)
+
+
+@csrf_exempt
+def index(request):
+    if request.method == 'GET':
+        signature = request.GET.get('signature')
+        timestamp = request.GET.get('timestamp')
+        nonce = request.GET.get('nonce')
+        if not wechat.check_signature(signature=signature, timestamp=timestamp, nonce=nonce):
+            return HttpResponseBadRequest("Failed!")
+        return HttpResponse(request.GET.get('echostr', ''), content_type="text/plain")
+
+    try:
+        wechat.create_menu(menu_data=menu)
+    except OfficialAPIError:
+        return HttpResponseBadRequest('Failed to Create Menu')
+
+    try:
+        wechat.parse_data(request.body)
+    except ParseError:
+        return HttpResponseBadRequest('Invalid Body Text')    
+
+    if isinstance(wechat.message, EventMessage):
+        xml = wechat.response_text(content='感谢您关注龟龟摄影微信公众号！回复【历史消息】，查看往期推送信息；') 
+        return HttpResponse(xml, content_type='application/xml')
+    if isinstance(wechat.message, TextMessage):
+        content = wechat.message.content.strip()
+        if content == u'历史消息':
+            access_token_response = urllib2.urlopen('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wxd215ea1905032a90&secret=14a0dc6d2dc81db94f46f2755f0f4702').read()  
+            access_token = json.loads(access_token_response)
+            post_url = 'https://api.weixin.qq.com/cgi-bin/material/batchget_material?access_token=%s&type=news&offset=0&count=4' % access_token
+            materail_request = urllib2.Request(post_url)
+            materail_response = urllib2.urlopen(materail_request).read()
+            materail = json.loads(materail_response)
+            xml = wechat.response_text(content='历史消息')
+            return HttpResponse(xml, content_type='application/xml')
+ 
+
+def update_database(request):
+    return render(request, "update.html")
+
+
+def search_database_film(request):
+    films = Films.objects.all().order_by("Film")
+
+    display_35mm = []
+    for film in films:
+        if FilmSearch.objects.filter(Film=film.Film).exclude(a35mm="").exists():
+            display_35mm.append(FilmSearch.objects.filter(Film=film.Film).exclude(a35mm="")[0].Film)
+    display_35mm_counts = len(display_35mm)
+
+    display_120 = []
+    for film in films:
+        if FilmSearch.objects.filter(Film=film.Film).exclude(a120="").exists():
+            display_120.append(FilmSearch.objects.filter(Film=film.Film).exclude(a120="")[0].Film)
+    display_120_counts = len(display_120)
+
+    display_sheet = []
+    for film in films:
+        if FilmSearch.objects.filter(Film=film.Film).exclude(Sheet="").exists():
+            display_sheet.append(FilmSearch.objects.filter(Film=film.Film).exclude(Sheet="")[0].Film)
+    display_sheet_counts = len(display_sheet)
+
+    return render(request, "search_film.html", {"display_35mm": display_35mm,
+                                                "display_35mm_counts": display_35mm_counts,
+                                                "display_120": display_120,
+                                                "display_120_counts": display_120_counts,
+                                                "display_sheet": display_sheet,
+                                                "display_sheet_counts": display_sheet_counts})
+
+
+def search_database_developer(request):
+    source = request.GET.get("source")
+    film = request.GET.get("film")
+    films_search = FilmSearch.objects.filter(Film=film)
+    display_developer = []
+    for film_search in films_search:
+        if film_search.Developer not in display_developer:
+            display_developer.append(film_search.Developer)
+    display_developer_counts = len(display_developer)
+    return render(request, "search_developer.html", {"nav": {"source": source, "film": film},
+                                                     "display_developer": display_developer,
+                                                     "display_developer_counts": display_developer_counts})
+
+
+def search_database_dilution(request):
+    source = request.GET.get("source")
+    film = request.GET.get("film")
+    developer = request.GET.get("developer")
+    films_search = FilmSearch.objects.filter(Film=film).filter(Developer=developer)
+    display_dilution = []
+    for film_search in films_search:
+        if film_search.Dilution not in display_dilution:
+            display_dilution.append(film_search.Dilution)
+    display_dilution_counts = len(display_dilution)
+    return render(request, "search_dilution.html", {"nav": {"source": source, "film": film, "developer": developer},
+                                                    "display_dilution": display_dilution,
+                                                    "display_dilution_counts": display_dilution_counts})
+
+
+def search_database_asa_iso(request):
+    source = request.GET.get("source")
+    film = request.GET.get("film")
+    developer = request.GET.get("developer")
+    dilution = request.GET.get("dilution").replace('^', '+')
+    films_search = FilmSearch.objects.filter(Film=film).filter(Developer=developer).filter(Dilution=dilution)
+    display_asa_iso = []
+    for film_search in films_search:
+        if film_search.ASA_ISO not in display_asa_iso:
+            display_asa_iso.append(film_search.ASA_ISO)
+    display_asa_iso_counts = len(display_asa_iso)
+    return render(request, "search_asa_iso.html", {"nav": {"source": source, "film": film, "developer": developer,
+                                                           "dilution": dilution},
+                                                   "display_asa_iso": display_asa_iso,
+                                                   "display_asa_iso_counts": display_asa_iso_counts})
+
+
+def search_database_result(request):
+    source = request.GET.get("source")
+    film = request.GET.get("film")
+    developer = request.GET.get("developer")
+    dilution = request.GET.get("dilution").replace('^', '+')
+    asa_iso = request.GET.get("asa_iso").replace('^', '+')
+    result = FilmSearch.objects.filter(Film=film).filter(Developer=developer).filter(Dilution=dilution).\
+        filter(ASA_ISO=asa_iso)[0]
+
+    time = ""
+    if source == "35mm":
+        time = result.a35mm
+    elif source == "120":
+        time = result.a120
+    elif source == "Sheet":
+        time = result.Sheet
+
+    temperature = result.Temp.split("C")[0]
+
+    note_list = []
+    if result.Notes != "":
+        note_orders = result.Notes
+        note_orders = re.findall(r"\[(.*?)\]", note_orders)
+        for note_order in note_orders:
+            if note_order == "46":
+                pass
+            else:
+                note = Notes.objects.get(Notes=note_order).Remark
+                if note[-1] == ".":
+                    note = note[:-1]
+                note_list.append(note)
+    has_note = len(note_list)
+    return render(request, "search_result.html", {"nav": {"source": source, "film": film, "developer": developer,
+                                                          "dilution": dilution, "asa_iso": asa_iso},
+                                                  "time": time,
+                                                  "temperature": temperature,
+                                                  "has_note": has_note,
+						  "note_list": note_list})
+
