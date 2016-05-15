@@ -1,14 +1,17 @@
-ul {
-    margin-top: 10px;
-    padding: 0;
-    height: 40px;
-    list-style: none;
+.result-wrapper {
+    padding: 30px 20px;
 }
 
 ul li {
-    line-height: 40px;
-    font-size: 20px;
+    line-height: 30px;
+    font-size: 15px;
     font-family: "Time New Roman";
     color: #000000;
 }
+
+.button-wrapper {
+    text-align: right;
+    padding-right: 10px;
+}
+
 

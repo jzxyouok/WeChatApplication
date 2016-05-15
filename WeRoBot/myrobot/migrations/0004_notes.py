@@ -7,21 +7,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('myrobot', '0005_delete_films'),
+        ('myrobot', '0003_delete_notes'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Films',
+            name='Notes',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('Film', models.CharField(max_length=100, verbose_name=b'Film')),
+                ('Notes', models.CharField(max_length=100, verbose_name=b'Notes')),
+                ('Remark', models.CharField(max_length=200, verbose_name=b'Remark')),
                 ('create_timestamp', models.DateTimeField(auto_now_add=True)),
                 ('last_update_timestamp', models.DateTimeField(auto_now=True)),
             ],
             options={
-                'verbose_name': 'Films',
-                'verbose_name_plural': 'Films',
+                'verbose_name': "Notes' Remark",
+                'verbose_name_plural': "Notes' Remark",
             },
         ),
     ]

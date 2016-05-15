@@ -30,15 +30,19 @@ def update_database(request):
                     developer = tr.find_all('td')[1].get_text()
                     dilution = tr.find_all('td')[2].get_text()
                     asa_iso = tr.find_all('td')[3].get_text()
-                    _35mm = tr.find_all('td')[4].get_text()
-                    _120 = tr.find_all('td')[5].get_text()
+                    a35mm = tr.find_all('td')[4].get_text()
+                    a120 = tr.find_all('td')[5].get_text()
                     sheet = tr.find_all('td')[6].get_text()
                     temp = tr.find_all('td')[7].get_text()
                     notes = tr.find_all('td')[8].get_text()
-                    film_search = FilmSearch(
-                        Film=film, Developer=developer, Dilution=dilution,
-                        ASA_ISO=asa_iso, _35mm=_35mm, _120=_120,
-                        Sheet=sheet, Temp=temp, Notes=notes
-                    )
-                    film_search.save()
+                    try:
+                        film_search = FilmSearch.objects.get(Film=film, Developer=developer,
+                                                             Dilution=dilution, ASA_ISO=asa_iso)
+                    except FilmSearch.DoesNotExist:
+                        film_search = FilmSearch(
+                            Film=film, Developer=developer, Dilution=dilution,
+                            ASA_ISO=asa_iso, a35mm=a35mm, a120=a120,
+                            Sheet=sheet, Temp=temp, Notes=notes
+                        )
+                        film_search.save()
         return HttpResponse(u"更新数据库完毕！")

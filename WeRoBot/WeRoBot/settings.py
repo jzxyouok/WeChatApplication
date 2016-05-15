@@ -25,7 +25,7 @@ SECRET_KEY = 'nl&+-7!ib!jr*d8!--4cw^xytu=$b8supijk4ou1z9z^k9por*'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['.summychou.me', '127.0.0.1', '0.0.0.0']
+ALLOWED_HOSTS = ['.fotolei.cn', '127.0.0.1', '0.0.0.0']
 
 
 # Application definition

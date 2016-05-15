@@ -2,7 +2,6 @@
 import json
 import re
 import requests
-import urllib
 import urllib2
 
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -31,15 +30,15 @@ menu = {
         {
             'type': 'view',
             'name': '搜索参数',
-            'url': 'http://www.summychou.me/search'
+            'url': 'http://www.fotolei.cn/search'
         },
         {
             'name': 'F1冲洗机',
             'sub_button': [
                 {
-                    'type': 'view',
+                    'type': 'click',
                     'name': '入门视频教程',
-                    'url': 'http://www.soso.com/'
+                    'key': ''
                 },
             ]
         },
@@ -47,9 +46,9 @@ menu = {
             'name': '胶片教程',
             'sub_button': [
                 {
-                    'type': 'view',
+                    'type': 'click',
                     'name': '胶片存放',
-                    'url': 'http://www.soso.com/'
+                    'key': ''
                 },
             ]
         }
@@ -85,7 +84,9 @@ def index(request):
     if isinstance(wechat.message, TextMessage):
         content = wechat.message.content.strip()
         if content == u'历史消息':
-	    access_token_response = urllib2.urlopen('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=wxd215ea1905032a90&secret=14a0dc6d2dc81db94f46f2755f0f4702').read()
+            access_token_response = urllib2.urlopen(
+                'https://api.weixin.qq.com/cgi-bin/token?grant_type'
+                '=client_credential&appid=wxd215ea1905032a90&secret=14a0dc6d2dc81db94f46f2755f0f4702').read()
             access_token = json.loads(access_token_response).get('access_token')
             post_url = 'https://api.weixin.qq.com/cgi-bin/material/batchget_material?access_token=%s' % access_token
             post_data = json.dumps({'type': "news", 'offset': 0, 'count': 4})
@@ -101,14 +102,18 @@ def index(request):
                 post_url = 'https://api.weixin.qq.com/cgi-bin/material/get_material?access_token=%s' % access_token   
                 post_data = json.dumps({'media_id': media_id})
                 response = requests.post(post_url, data=post_data).json()
-                news_item_list.append((response["news_item"][0]["title"].encode("raw_unicode_escape"), response["news_item"][0]["thumb_url"].encode("raw_unicode_escape"), response["news_item"][0]["url"].encode("raw_unicode_escape")))
+                news_item_list.append((response["news_item"][0]["title"].encode("raw_unicode_escape"),
+                                       response["news_item"][0]["thumb_url"].encode("raw_unicode_escape"),
+                                       response["news_item"][0]["url"].encode("raw_unicode_escape")))
             
             articles = []
             for j in range(item_count):
-                articles.append({'title': news_item_list[j][0], 'picurl': news_item_list[j][1], 'url': news_item_list[j][2]})
+                articles.append({'title': news_item_list[j][0],
+                                 'picurl': news_item_list[j][1],
+                                 'url': news_item_list[j][2]})
             xml = wechat.response_news(articles)
             return HttpResponse(xml, content_type='application/xml')
- 
+
 
 def update_database(request):
     return render(request, "update.html")
@@ -247,5 +252,4 @@ def search_database_result(request):
                                                   "time": time,
                                                   "temperature": temperature,
                                                   "has_note": has_note,
-						  "note_list": note_list})
-
+                                                  "note_list": note_list})
