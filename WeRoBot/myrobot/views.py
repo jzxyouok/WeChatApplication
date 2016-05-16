@@ -6,6 +6,7 @@ import urllib2
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
+from django.views.decorators.cache import cache_page
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -22,7 +23,7 @@ conf = WechatConf(
     appid='wxd215ea1905032a90',
     appsecret='14a0dc6d2dc81db94f46f2755f0f4702',
     encrypt_mode='normal',
-    encoding_aes_key='N0iYQ4h7yucFJdtQIxXdM4SjKG1VBErCuNSnY5DHebb',
+    encoding_aes_key='1ULPjA9GkTFNqhawzSITtRCE5DrIsk7ggVZCg2EIMUI',
 )
 
 menu = {
@@ -36,9 +37,9 @@ menu = {
             'name': 'F1冲洗机',
             'sub_button': [
                 {
-                    'type': 'click',
+                    'type': 'view',
                     'name': '入门视频教程',
-                    'key': ''
+                    'url': 'http://www.summychou.me'
                 },
             ]
         },
@@ -46,9 +47,9 @@ menu = {
             'name': '胶片教程',
             'sub_button': [
                 {
-                    'type': 'click',
+                    'type': 'view',
                     'name': '胶片存放',
-                    'key': ''
+                    'url': 'http://www.summychou.me'
                 },
             ]
         }
@@ -96,8 +97,8 @@ def index(request):
             for j in range(item_count):
                 media_id = response["item"][j]["media_id"]
                 media_id_list.append(media_id)
-            news_item_list = []
 
+            news_item_list = []
             for media_id in media_id_list:
                 post_url = 'https://api.weixin.qq.com/cgi-bin/material/get_material?access_token=%s' % access_token   
                 post_data = json.dumps({'media_id': media_id})
@@ -119,6 +120,7 @@ def update_database(request):
     return render(request, "update.html")
 
 
+@cache_page(60 * 30)
 def search_database_film(request):
     films = Films.objects.all().order_by("Film")
 

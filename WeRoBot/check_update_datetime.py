@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 import time
 import urllib2
@@ -10,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 
-from myrobot.models import FilmSearch
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "WeRoBot.settings")
 
 
 def parse_update_data(html):
@@ -33,6 +34,7 @@ def parse_update_data(html):
             notes = soup_inner.find_all(name="tr")[1].find_all(name="td")[-1].get_text().strip()
         except AttributeError:
             notes = ""
+        from myrobot.models import FilmSearch
         try:
             obj = FilmSearch.objects.get(Film=film, Developer=developer, Dilution=dilution,
                                          ASA_ISO=asa_iso, Temp=temp)
